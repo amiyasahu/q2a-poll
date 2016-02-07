@@ -62,53 +62,68 @@
 						'type' => 'static',
 					);
 				}
-				$poll_array = qa_db_read_all_assoc(
-					qa_db_query_sub(
-						'SELECT * FROM ^postmeta WHERE meta_key=$',
-						'is_poll'
-					)
-				);
-				foreach($poll_array as $q) {
-					$poll[(int)$q['post_id']] = $q['meta_value'];
-				}
-				if(isset($this->content['q_view'])) {
+				
+				$poll = array();
 
-					$qid = $this->content['q_view']['raw']['postid'];
-					$author = $this->content['q_view']['raw']['userid'];
-
-					if(isset($poll[$qid])) { // is a poll
-						
-						$this->poll = $poll[$qid];
-
-						if(qa_post_text('poll_delete') && (!qa_user_permit_error('permit_delete_poll') || qa_get_logged_in_userid() == $author)) {
-							$this->deletePoll($qid);
-							$this->content['error'] = 'Poll deleted.';
-							return;
-						}
-						else if (qa_post_text('poll_close') && (!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author)) {
-							$this->closePoll($qid);
-						}
-						else if (qa_post_text('poll_reopen') && (!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author)) {
-							$this->reopenPoll($qid);
-						}
-						
-						
-					// add post elements
+				//Find all polls only for non blog pages 
+				if (strpos( $this->template, 'blog' ) !== 0) {
+					$poll_array = qa_db_read_all_assoc(
+						qa_db_query_sub(
+							'SELECT * FROM ^postmeta WHERE meta_key=$',
+							'is_poll'
+						)
+					);
 					
-						// title
-
-						$this->content['title'] .= ' '.qa_lang('polls/question_title');
-
-						// poll div
-						
-						$this->content['q_view']['content'] = @$this->content['q_view']['content'].'<div id="qa-poll-div">'.$this->getPollDiv($qid,qa_get_logged_in_userid()).'</div>';
-						
-						// css class
-						
-						$this->content['q_view']['main_form_tags'] = @$this->content['q_view']['main_form_tags'].' class="qa-poll"';
+					foreach($poll_array as $q) {
+						$poll[(int)$q['post_id']] = $q['meta_value'];
 					}
 				}
-				if(isset($this->content['q_list'])) {
+				
+
+				if($this->template == 'question') {
+
+					if(isset($this->content['q_view'])) {
+
+						$qid = $this->content['q_view']['raw']['postid'];
+						$author = $this->content['q_view']['raw']['userid'];
+
+						if(isset($poll[$qid])) { // is a poll
+							
+							$this->poll = $poll[$qid];
+
+							if(qa_post_text('poll_delete') && (!qa_user_permit_error('permit_delete_poll') || qa_get_logged_in_userid() == $author)) {
+								$this->deletePoll($qid);
+								$this->content['error'] = 'Poll deleted.';
+								return;
+							}
+							else if (qa_post_text('poll_close') && (!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author)) {
+								$this->closePoll($qid);
+							}
+							else if (qa_post_text('poll_reopen') && (!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author)) {
+								$this->reopenPoll($qid);
+							}
+							
+							
+							// add post elements
+						
+							// title
+
+							$this->content['title'] .= ' '.qa_lang('polls/question_title');
+
+							// poll div
+							
+							$this->content['q_view']['content'] = @$this->content['q_view']['content'].'<div id="qa-poll-div">'.$this->getPollDiv($qid,qa_get_logged_in_userid()).'</div>';
+							
+							// css class
+							
+							$this->content['q_view']['main_form_tags'] = @$this->content['q_view']['main_form_tags'].' class="qa-poll"';
+						}
+					}
+
+				}
+				
+				//Mark the questions only as polls , discard the blog pages 
+				if(isset($this->content['q_list']) && strpos( $this->template, 'blog' ) !== 0) {
 					foreach($this->content['q_list']['qs'] as $idx => $question) {
 
 						if(isset($poll[$question['raw']['postid']])) {
@@ -116,6 +131,7 @@
 						}
 					}					
 				}
+
 			}
 		}
 		
