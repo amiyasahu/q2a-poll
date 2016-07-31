@@ -54,11 +54,18 @@
 					$this->content['form']['tags'] .= ' onSubmit="pollSubmit(event)"';
 					$this->content['form']['fields'][] = array(
 						'label' => qa_lang('polls/checkbox_text'),
-						'tags' => 'NAME="is_poll" ID="is_poll" onclick="jQuery(\'#qa-poll-ask-div\').toggle()"',
+						'tags' => 'name="is_poll" id="is_poll" onclick="jQuery(\'#qa-poll-ask-div\').toggle()"',
 						'type' => 'checkbox',
 					);
 					$this->content['form']['fields'][] = array(
-						'note' => '<div id="qa-poll-ask-div" style="display:none"><p class="qa-form-tall-label"><input type="checkbox" name="poll_multiple">'.qa_lang('polls/multiple_text').'</p><p class="qa-form-tall-label">'.qa_lang('polls/answers_text').'</p><input type="input" class="qa-poll-answer-text" class="qa-poll-answer-text" name="poll_answer_1" id="poll_answer_1">&nbsp;<input type="button" class="qa-poll-answer-add" value="+" onclick="addPollAnswer(poll_answer_index)"></div>',
+						'note' => '<div id="qa-poll-ask-div" style="display:none">
+										<div><label><input type="checkbox" name="poll_multiple">'.qa_lang('polls/multiple_text').'</label></div>
+										<div>'.qa_lang('polls/answers_text').'</div>
+										<div class="input-group poll-choice">
+											<input type="text" class="qa-poll-answer-text form-control" name="poll_answer_1" id="poll_answer_1" placeholder="Poll answer" aria-describedby="new-poll-ans-1">
+											<span class="input-group-addon qa-poll-answer-add" id="new-poll-ans-1" onclick="addPollAnswer(poll_answer_index)">+</span>
+										</div>
+									</div>',
 						'type' => 'static',
 					);
 				}
@@ -83,7 +90,6 @@
 				if($this->template == 'question') {
 
 					if(isset($this->content['q_view'])) {
-
 						$qid = $this->content['q_view']['raw']['postid'];
 						$author = $this->content['q_view']['raw']['userid'];
 
@@ -150,7 +156,7 @@
 	var poll_answer_index = 2;
 	jQuery("document").ready(function(){jQuery("#is_poll").removeAttr("checked")});
 	function addPollAnswer(idx) {
-		jQuery("#qa-poll-ask-div").append(\'<br/><input type="input" class="qa-poll-answer-text" name="poll_answer_\'+idx+\'" id="poll_answer_\'+idx+\'">&nbsp;<input type="button" class="qa-poll-answer-add" value="+" onclick="addPollAnswer(poll_answer_index)">\');
+		jQuery("#qa-poll-ask-div").append(\'<div class="input-group poll-choice"><input type="text" class="qa-poll-answer-text form-control" name="poll_answer_\'+idx+\'" id="poll_answer_\'+idx+\'" placeholder="Poll answer" aria-describedby="new-poll-ans-\'+idx+\'"><span class="input-group-addon qa-poll-answer-add" id="new-poll-ans-\'+idx+\'" onclick="addPollAnswer(poll_answer_index)">+</span></div>\');
 		poll_answer_index++;
 	}
 	function pollSubmit(e) {
@@ -288,12 +294,15 @@ function pollVote(qid,uid,vid,cancel) {
 			
 			if(empty($answers)) return '### no choices found for poll!';
 
-			$out = '<div id="qa-poll-choices-title">'.qa_lang('polls/answers_text').'</div><div id="qa-poll-choices">';
-			
+			$out = '<div class="panel panel-primary">';
+			$out .= '<div class="panel-heading">
+                    <h3 class="panel-title" id="qa-poll-choices-title">
+                        <span class="glyphicon glyphicon-hand-right"></span> '.qa_lang('polls/answers_text').'
+                    </h3>
+                </div>';
+			$out .= '<div id="qa-poll-choices" class="panel-body">';
+
 			// check if voted
-			
-			$allow = true;
-			
 			$totalvotes = 0;
 			
 			foreach ($answers as $idx => $answer) {
@@ -303,57 +312,74 @@ function pollVote(qid,uid,vid,cancel) {
 				$totalvotes += count($votes);
 
 				if(!$uid || !qa_permit_check('permit_vote_poll') || $this->poll > 9 || ($voted && !qa_opt('poll_vote_change') && !in_array($uid,$votes) && $this->poll != 2)) {
-					$answers[$idx]['vote'] = '<div class="qa-poll-disabled-button" title="'.qa_html(qa_lang('polls/disabled_button')).'"></div>';
+					$answers[$idx]['vote'] = '<div class="qa-poll-disabled-button fa fa-check-square" title="'.qa_html(qa_lang('polls/disabled_button')).'"></div>';
 				}
 				else if($voted && !qa_opt('poll_vote_change') && $this->poll != 2) { // voted for this one, can't change, not multiple
-					$answers[$idx]['vote'] = '<div class="qa-poll-voted-button" title="'.qa_html(qa_lang('polls/voted_button')).'" onclick="alert(\''.qa_lang('polls/cannot_change').'\')"></div>';
+					$answers[$idx]['vote'] = '<div class="qa-poll-voted-button fa fa-check-square" title="'.qa_html(qa_lang('polls/voted_button')).'" onclick="alert(\''.qa_lang('polls/cannot_change').'\')"></div>';
 				}
 				else if(!in_array($uid,$votes))
-					$answers[$idx]['vote'] = '<div class="qa-poll-vote-button" title="'.qa_html(qa_lang('polls/vote_button')).'" onclick="pollVote('.$qid.',\''.$uid.'\','.$answer['id'].')"></div>';
+					$answers[$idx]['vote'] = '<div class="qa-poll-vote-button fa fa-check-square" title="'.qa_html(qa_lang('polls/vote_button')).'" onclick="pollVote('.$qid.',\''.$uid.'\','.$answer['id'].')"></div>';
 				else {
-					$answers[$idx]['vote'] = '<div class="qa-poll-voted-button" title="'.qa_html(qa_lang('polls/voted_button')).'" onclick="pollVote('.$qid.',\''.$uid.'\',\''.$answer['id'].',1)"></div>';
+					$answers[$idx]['vote'] = '<div class="qa-poll-voted-button fa fa-check-square" title="'.qa_html(qa_lang('polls/voted_button')).'" onclick="pollVote('.$qid.',\''.$uid.'\',\''.$answer['id'].'\',1)"></div>';
 					
 					$voted = true;
 				}
 			}
 
 			foreach ($answers as $answer) {
-				
-				
+
 				if(!$answer['votes']) $votes = array();
 				else $votes = explode(',',$answer['votes']);
-				
-				$out .= '<div class="qa-poll-choice">'.@$answer['vote'].'<span class="qa-poll-choice-title">'.qa_html($answer['content']).'</span>';
-				
+				$out .= '<div class="qa-poll-choice">';
+				$vote_percentage = '';
+				$vote_count = '';
+
 				if(!qa_opt('poll_votes_hide') || $voted || qa_get_logged_in_level()>=QA_USER_LEVEL_ADMIN) {
-					$out .= ' ('.(count($votes)==1?qa_lang('main/1_vote'):str_replace('^',count($votes),qa_lang('main/x_votes'))).(qa_opt('poll_votes_percent') && !empty($votes) > 0? ', '.round(100*count($votes)/$totalvotes).'%' : '').')';
+					$vote_count = (count($votes)==1?qa_lang('main/1_vote'):str_replace('^',count($votes),qa_lang('main/x_votes')));
+					if(qa_opt('poll_votes_percent'))
+						$vote_percentage = (!empty($votes) ? round(100*count($votes)/$totalvotes).'%' : '0%');
+					else
+						$vote_percentage = '';
 				}
-				
-				$out .= '<table class="qa-poll-votes"><tr>';
-				
-				if($answer['votes'] && (!qa_opt('poll_votes_hide') || $voted || qa_get_logged_in_level()>=QA_USER_LEVEL_ADMIN)) { // don't show if user hasn't voted and admin option is checked
-					
-					$c = 0;
-					while( ($c++) < count($votes)) {
-						$out .= '<td class="qa-poll-vote-block" title="'.(count($votes)==1?qa_lang('main/1_vote'):str_replace('^',count($votes),qa_lang('main/x_votes'))).'"></td>';
-					}
+
+				$out .= @$answer['vote'].'<span class="qa-poll-answer">'.qa_html($answer['content']).'</span><span class="pull-right">'.$vote_count.'</span>';
+
+				if(qa_opt('poll_votes_percent')){
+					$out .=	'<div class="progress">
+						  <div class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar" aria-valuenow="'.$vote_percentage.'" aria-valuemin="0" aria-valuemax="100" style="min-width: 2em; width: '.$vote_percentage.'">
+							'.$vote_percentage.'
+						  </div>
+						</div>';
 				}
-				else $out .= '<td class="qa-poll-vote-block-empty"></td>';
-				
-				$out .= '</tr></table></div>';
+
+				$out .= '</div>';
 			}
+
 			if($this->poll > 9) { // poll closed
-				$out .= '<div class="qa-poll-closed">'.qa_lang('polls/poll_closed').'</div>';
-				if(!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author) 
-					$out .= '<input type="submit" class="qa-poll-button" title="'.qa_lang('polls/reopen_poll_hover').'" value="'.qa_lang('polls/reopen_poll').'" name="poll_reopen">';
+				$out .= '<div class="qa-poll-closed alert alert-info">'.qa_lang('polls/poll_closed').'</div>';
+			}
+
+			$out .= '</div>';
+
+			if(!qa_user_permit_error('permit_close_poll') || !qa_user_permit_error('permit_delete_poll')){
+				$out.= '<div class="panel-footer">';
+			}
+
+			if($this->poll > 9) { // poll closed
+				if(!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author)
+					$out .= '<button type="submit" class="btn btn-primary btn-sm qa-poll-button" title="'.qa_lang('polls/reopen_poll_hover').'" name="poll_reopen" value="1">'.qa_lang('polls/reopen_poll').'</button>';
 			}
 			else if(!qa_user_permit_error('permit_close_poll') || qa_get_logged_in_userid() == $author) 
-				$out .= '<input type="submit" class="qa-poll-button" title="'.qa_lang('polls/close_poll_hover').'" value="'.qa_lang('polls/close_poll').'" name="poll_close">';
+				$out .= '<button type="submit" class="btn btn-primary btn-sm qa-poll-button" title="'.qa_lang('polls/close_poll_hover').'" name="poll_close" value="1">'.qa_lang('polls/close_poll').'</button>';
 			if(!qa_user_permit_error('permit_delete_poll') || qa_get_logged_in_userid() == $author) 
-				$out .= '<input type="submit" class="qa-poll-button" title="'.qa_lang('polls/delete_poll_hover').'" value="'.qa_lang('polls/delete_poll').'" name="poll_delete">';
-				
+				$out .= '<button type="submit" class="btn btn-danger btn-sm qa-poll-button" title="'.qa_lang('polls/delete_poll_hover').'" name="poll_delete" value="1">'.qa_lang('polls/delete_poll').'</button>';
+
+			if(!qa_user_permit_error('permit_close_poll') || !qa_user_permit_error('permit_delete_poll')){
+				$out .= '</div>';
+			}
+
 			$out .= '</div>';
-			
+
 			return $out;
 		}
 		

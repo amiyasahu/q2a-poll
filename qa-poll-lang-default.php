@@ -49,9 +49,10 @@
 		'cannot_change' => 'You cannot change your vote once you have voted.',
 		'already_voted' => 'You have already voted once.',
 		'disabled_button' => 'you are not allowed to vote',
-		'answers_text' => 'Choices:',
+		'answers_text' => 'Cast your vote:',
 		'page_title' => 'Polls',
-		'choice_count_error' => 'You must enter at least two choices for the poll.',
+		'choice_count_error' => 'You must enter at least two choices for the poll.',
+
 	);
 
 /*
